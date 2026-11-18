@@ -1,0 +1,58 @@
+# wrangler.toml
+name = "easytier-workers-websocket"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+
+# ws目录：留空表示不限制路径，客户端填任意链接（如 wss://域名）都能连上
+# 如需固定路径，可填 "ws"（对应 wss://域名/ws）
+WS_PATH = "/aa"
+
+# 转发，0为开启转发，1为纯P2P（只转发控制面，不转发 Data 包）
+EASYTIER_DISABLE_RELAY = "0"
+
+# 连接位图模式：不设置（或 "0"）为星型起步。
+#   客户端先经中继互通，打洞成功后上报直连关系，服务端并进位图再广播，
+#   流量自动切到 P2P；打洞失败则一直走中继。
+# 设为 "1" 会强制下发全互联位图（复现旧版行为，仅用于排查，会导致流量仍走中继）
+# EASYTIER_FULL_MESH = "0"
+
+# 调试日志：设为 "1" 输出逐包日志（生产环境请保持 "0"，逐包日志会明显拉高延迟）
+EASYTIER_DEBUG = "0"
+
+# Workers地域，参考README.md
+LOCATION_HINT = "wnam"
+
+# 私有模式：填入与客户端相同的网络名称。留空则允许任何人连接
+EASYTIER_NETWORK_NAME = "et-terry"
+
+# 延迟优先模式：设为 "1" 开启，开启后中继发出的包会带上特权标志位，加速路由收敛
+EASYTIER_LATENCY_FIRST = "1"
+
+# 握手时的网络名回填策略：
+#   "foreign"（默认）= 以 public_server 身份对外声明，客户端把跨节点流量交给中继，可正常组网
+#   "same"           = 不自称外部网络（排查用，可能与客户端网络名冲突）
+EASYTIER_HANDSHAKE_MODE = "foreign"
+
+# 心跳与超时配置（缩短时间，解决节点不消失的问题）
+EASYTIER_HEARTBEAT_INTERVAL = "10000" # 10秒发一次心跳
+EASYTIER_CONNECTION_TIMEOUT = "25000" # 25秒无响应则踢出
+EASYTIER_SESSION_TTL_MS = "180000"
+
+# 单连接吞吐上限（字节/秒），超出部分丢弃且不断连
+EASYTIER_MAX_BYTES_PER_SEC = "16777216"
+
+# PeerCenter 上报与全局表上限，防止被大量伪造节点撑爆内存
+EASYTIER_MAX_DIRECT_PEERS = "256"
+EASYTIER_MAX_PEER_CENTER_ENTRIES = "4096"
+
+[durable_objects]
+bindings = [
+  { name = "RELAY_ROOM", class_name = "RelayRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RelayRoom"]
